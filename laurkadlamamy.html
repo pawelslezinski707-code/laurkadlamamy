@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Laurka dla Mamy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Nunito:wght@400;600;700&display=swap">
+<style>
+/* Układ: pionowa kartka-książeczka. Trzy arkusze (finał, rozkładówka, okładka), okładka i rozkładówka odchodzą jak strony wokół grzbietu. */
+:root{
+  color-scheme:light;
+  /* paleta: Koral i brzoskwinia */
+  --bg1:#FFF4EA; --bg2:#FFE3D6; --bg3:#FFD2C6;
+  --cream:#FFF0E6; --paper:#FFF9F4; --table:#F4DACD; --table-hi:#FBEBE2;
+  --ink:#4A2A26; --ink-soft:#7B534C; --dim:#E3C7BD;
+  --pink:#F26B5B; --pink-deep:#C4402F; --pink-btn:#BE3B2B; --pink-soft:#FBC4B8;
+  --lilac:#F7B7A3; --purple:#EE9A4A; --purple-deep:#B8651A;
+  --butter:#F4CD72; --butter-deep:#D9A441; --mint:#86C9B5; --leaf:#6FAE92;
+  --script:'Caveat','Segoe Script','Bradley Hand',cursive;
+  --sans:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --ease:cubic-bezier(.55,.04,.2,1);
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .2 0 0 0 0 .35 0 0 0 .14 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; display:grid; place-items:center; overflow:hidden;
+  background-color:var(--table);
+  background-image:radial-gradient(110% 80% at 50% 25%,var(--table-hi) 0%,var(--table) 70%);
+  color:var(--ink); font-family:var(--sans);
+  padding-top:max(16px,env(safe-area-inset-top,0px));
+  padding-bottom:max(16px,env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-tap-highlight-color:transparent;
+  transition:background-color .4s;
+}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#confetti{display:none;position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:50}
+
+.book{
+  position:relative;
+  width:min(100%,440px,calc((100vh - 32px) * .5625));
+  width:min(100%,440px,calc((100dvh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)) * .5625));
+  aspect-ratio:9/16; container-type:inline-size;
+  touch-action:none; user-select:none; -webkit-user-select:none; cursor:pointer; outline:none;
+}
+.book:focus-visible{outline:3px solid var(--pink);outline-offset:6px;border-radius:10px}
+.cardshadow{position:absolute;inset:0;border-radius:4px 10px 10px 4px;box-shadow:0 2px 3px color-mix(in srgb,var(--ink) 20%,transparent),0 22px 40px -14px color-mix(in srgb,var(--ink) 40%,transparent),0 50px 80px -40px color-mix(in srgb,var(--ink) 32%,transparent)}
+
+.layer{position:absolute;inset:0;pointer-events:none}
+.layer.cover{z-index:3}.layer.spread{z-index:2}.layer.finale{z-index:1}
+.flap{position:absolute;inset:0}
+.face{position:absolute;inset:0;border-radius:4px 10px 10px 4px;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.face.back{display:none}
+.cover,.spread{opacity:1;visibility:visible;transition:opacity .7s ease,visibility 0s}
+.book:not([data-stage="0"]) .cover{opacity:0;visibility:hidden;transition:opacity .7s ease,visibility 0s linear .7s}
+.book[data-stage="2"] .spread{opacity:0;visibility:hidden;transition:opacity .7s ease,visibility 0s linear .7s}
+
+.book[data-stage="0"] .spread{visibility:hidden;transition:visibility 0s linear .7s}
+.layer.finale{visibility:visible;transition:visibility 0s}
+.book:not([data-stage="2"]) .layer.finale{visibility:hidden;transition:visibility 0s linear .7s}
+.book:not(.settled) :is(.bob,.pulse,.next svg){animation-play-state:paused}
+.book:not([data-stage="0"]) .cover :is(.bob,.pulse){animation-play-state:paused}
+.book:not([data-stage="2"]) .finale .bob{animation-play-state:paused}
+.book:not([data-stage="1"]) .next svg{animation-play-state:paused}
+
+.shade{display:none}
+.spine{position:absolute;left:0;top:0;bottom:0;width:7cqw;pointer-events:none;z-index:3;background:linear-gradient(to right,color-mix(in srgb,var(--ink) 20%,transparent),transparent)}
+.spine::before{content:"";position:absolute;left:0;top:0;bottom:0;width:.5cqw;background:rgba(255,255,255,.45)}
+
+/* okładka */
+.cover-face{background-color:var(--cream);background-image:var(--grain),linear-gradient(165deg,var(--bg1) 0%,var(--bg2) 55%,var(--bg3) 100%)}
+.blob{position:absolute;border-radius:50%;aspect-ratio:1}
+.blob.b1{right:-14cqw;top:-8cqw;width:62cqw;background:radial-gradient(circle at 40% 40%,color-mix(in srgb,var(--pink) 34%,transparent),transparent 70%)}
+.blob.b2{left:-22cqw;bottom:8cqw;width:66cqw;background:radial-gradient(circle at 60% 40%,color-mix(in srgb,var(--purple) 28%,transparent),transparent 70%)}
+.art{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.cover-text{position:absolute;left:0;right:0;top:48cqw;isolation:isolate;transform:rotate(-4deg)}
+.cover-text::before{content:"";position:absolute;z-index:-1;left:-6cqw;right:-6cqw;top:-8cqw;bottom:-8cqw;background:radial-gradient(closest-side,color-mix(in srgb,var(--pink-soft) 85%,transparent),transparent)}
+.cover-text h1{margin:0;font-size:inherit;font-weight:inherit}
+.hb{display:block;width:fit-content;white-space:nowrap;font:700 var(--hbs,22cqw)/.92 var(--script);padding:0 2cqw 2.5cqw;
+  background-image:linear-gradient(160deg,var(--pink) 10%,var(--purple) 70%,var(--purple-deep) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 1.2cqw 0 color-mix(in srgb,var(--purple) 22%,transparent))}
+.hb.l1{margin-left:9cqw}
+.hb.l2{margin-left:auto;margin-right:6cqw;margin-top:-2cqw}
+.hint{position:absolute;left:0;right:0;bottom:10cqw;margin:0;text-align:center;font:600 3.6cqw var(--sans);letter-spacing:.06em;color:var(--ink-soft);display:flex;justify-content:center;align-items:center;gap:2.2cqw}
+.pulse{width:3cqw;height:3cqw;border-radius:50%;background:var(--pink);animation:pulse 1.8s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--pink) 55%,transparent)}100%{box-shadow:0 0 0 3.5cqw color-mix(in srgb,var(--pink) 0%,transparent)}}
+.bob{animation:bob 3.4s ease-in-out infinite alternate}
+@keyframes bob{from{transform:translateY(-2px)}to{transform:translateY(3px)}}
+
+/* rozkładówka: dwie strony jedna nad drugą */
+.spread-face{background-color:var(--paper);background-image:var(--grain)}
+.pg{position:absolute;left:0;right:0;height:50%;padding-left:9cqw;padding-right:8cqw;overflow:hidden}
+.p2{top:0;padding-top:8cqw;background:linear-gradient(to bottom,transparent 80%,color-mix(in srgb,var(--pink-deep) 7%,transparent))}
+.p3{top:50%;padding-top:7cqw;background:linear-gradient(to top,transparent 85%,color-mix(in srgb,var(--purple) 6%,transparent))}
+.crease{position:absolute;left:0;right:0;top:50%;height:0;pointer-events:none}
+.crease::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:color-mix(in srgb,var(--ink) 16%,transparent)}
+.crease::after{content:"";position:absolute;left:0;right:0;top:-5cqw;height:10cqw;background:linear-gradient(to bottom,transparent,color-mix(in srgb,var(--ink) 7%,transparent) 50%,transparent)}
+.eyebrow{margin:0 0 2cqw;font:700 3cqw var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--purple-deep)}
+.p2 h2{margin:0 0 3cqw;font:700 12cqw/1 var(--script);color:var(--pink-deep)}
+.p2 .body{margin:0;font:400 4.4cqw/1.5 var(--sans);color:var(--ink);text-wrap:pretty}
+.mini-staff{position:absolute;left:9cqw;bottom:8cqw;width:83cqw;height:10cqw;color:var(--ink-soft);overflow:visible}
+.p3 h3{margin:0 0 3cqw;font:700 9.5cqw/1 var(--script);color:var(--purple-deep)}
+.p3 .body{margin:0 0 2.4cqw;font:400 4.4cqw/1.5 var(--sans);color:var(--ink);text-wrap:pretty}
+.love{margin:1.2cqw 0 0;font:700 9.6cqw/1 var(--script);color:var(--pink-deep)}
+.p3 ul{list-style:none;margin:0;padding:0;display:grid;gap:2.6cqw}
+.p3 li{display:grid;grid-template-columns:5.4cqw 1fr;gap:2.4cqw;align-items:start;font:400 4.4cqw/1.4 var(--sans);color:var(--ink);text-wrap:pretty}
+.p3 li svg{width:5.4cqw;height:5.4cqw;margin-top:.5cqw;overflow:visible}
+.sign{position:absolute;left:9cqw;bottom:8cqw;margin:0;display:flex;align-items:center;gap:2cqw;font:700 7.6cqw/1 var(--script);color:var(--pink-deep)}
+.next{position:absolute;right:7cqw;bottom:20.5cqw;margin:0;display:flex;align-items:center;gap:1.6cqw;font:600 3.4cqw var(--sans);letter-spacing:.05em;color:var(--ink-soft)}
+.next svg{width:3.6cqw;height:3.6cqw;animation:nudge 1.4s ease-in-out infinite}
+@keyframes nudge{0%,100%{transform:translateX(-.6cqw)}50%{transform:translateX(.8cqw)}}
+
+/* finał */
+.finale-sheet{position:absolute;inset:0;border-radius:4px 10px 10px 4px;overflow:hidden;background-color:var(--cream);background-image:var(--grain),linear-gradient(200deg,var(--bg1) 0%,var(--bg2) 50%,var(--bg3) 100%)}
+.fin-text{position:absolute;left:0;right:0;top:10cqw;text-align:center}
+.big{margin:0;font:700 17cqw/.9 var(--script);color:var(--ink)}
+.big span{display:block}
+.big span:last-child{color:var(--pink-deep)}
+.karaoke-eyebrow{position:absolute;left:0;right:0;top:38cqw;margin:0;text-align:center;font:700 3cqw var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--purple-deep)}
+.hb.one{margin:0 auto}
+.fin-title{position:absolute;left:0;right:0;top:22cqw;margin:0;font-size:inherit;font-weight:inherit;rotate:-4deg;--hbs:15cqw}
+.lyrics{position:absolute;left:0;right:0;top:50cqw;display:grid;gap:.6cqw;padding-left:4cqw}
+.lyr-line{white-space:nowrap;text-align:center;font:700 7.6cqw/1.2 var(--script)}
+.syl{background-image:linear-gradient(90deg,var(--pink-deep) 0 50%,var(--dim) 50% 100%);background-size:200% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.fin-actions{position:absolute;left:0;right:0;bottom:14cqw;display:flex;flex-direction:column;align-items:center;gap:2cqw}
+.book[data-stage="2"] .fin-actions{pointer-events:auto}
+.btn{appearance:none;border:0;cursor:pointer;font:700 4.6cqw var(--sans);color:#fff;background:linear-gradient(135deg,var(--purple-deep),var(--pink-btn));padding:3.4cqw 6.5cqw;border-radius:999px;display:inline-flex;align-items:center;gap:2.4cqw;box-shadow:0 1.2cqw 0 color-mix(in srgb,var(--purple-deep) 35%,transparent);transition:transform .15s,box-shadow .15s}
+.btn:active{transform:translateY(.8cqw);box-shadow:0 .4cqw 0 color-mix(in srgb,var(--purple-deep) 35%,transparent)}
+.btn svg{width:4.4cqw;height:4.4cqw}
+.link{appearance:none;border:0;background:none;cursor:pointer;font:600 3.8cqw var(--sans);color:var(--ink-soft);text-decoration:underline;text-underline-offset:.8cqw;padding:2cqw 3cqw}
+.btn:focus-visible,.link:focus-visible,.dots button:focus-visible{outline:3px solid var(--pink);outline-offset:3px}
+
+/* wskaźnik stron */
+.dots{position:absolute;left:0;right:0;bottom:2.6cqw;z-index:10;display:flex;justify-content:center;gap:.5cqw;pointer-events:none}
+.dots button{pointer-events:auto;position:relative;width:6cqw;height:6cqw;border:0;background:none;padding:0;cursor:pointer}
+.dots button::after{content:"";position:absolute;left:50%;top:50%;width:2cqw;height:2cqw;border-radius:99px;background:var(--purple);opacity:.3;transform:translate(-50%,-50%);transition:width .4s var(--ease),opacity .3s,background .3s}
+.dots button[aria-current="true"]::after{width:5.5cqw;background:var(--pink);opacity:1}
+
+/* przełącznik języka */
+.lang{position:absolute;top:3cqw;right:4cqw;z-index:12;appearance:none;border:0;cursor:pointer;display:flex;align-items:center;padding:.7cqw;border-radius:999px;background:rgba(255,255,255,.78);box-shadow:0 .4cqw 2cqw color-mix(in srgb,var(--ink) 22%,transparent);font:700 3.3cqw var(--sans);color:var(--ink-soft);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.lang span{padding:1.2cqw 2.8cqw;border-radius:999px;transition:background .25s,color .25s}
+.lang span.on{background:var(--pink-btn);color:#fff}
+.lang:focus-visible{outline:3px solid var(--pink);outline-offset:3px}
+
+/* stopniowe pojawianie się treści */
+.rise{opacity:0;transform:translateY(2.5cqw);transition:opacity .3s .5s,transform .3s .5s}
+.book:not([data-stage="0"]) .spread .rise,.book[data-stage="2"] .finale .rise{opacity:1;transform:none;transition:opacity .7s ease calc(.4s + var(--i,0)*.13s),transform .7s ease calc(.4s + var(--i,0)*.13s)}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important}
+  .cover,.spread{transition:opacity .35s !important;transition-delay:0s !important}
+  .rise,.book:not([data-stage="0"]) .spread .rise,.book[data-stage="2"] .finale .rise{transition:opacity .3s !important;transition-delay:0s !important;transform:none}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <g id="fl"><g fill="currentColor" stroke="rgba(255,255,255,.6)" stroke-width=".8"><ellipse cx="0" cy="-8" rx="5.2" ry="8"/><ellipse cx="0" cy="-8" rx="5.2" ry="8" transform="rotate(72)"/><ellipse cx="0" cy="-8" rx="5.2" ry="8" transform="rotate(144)"/><ellipse cx="0" cy="-8" rx="5.2" ry="8" transform="rotate(216)"/><ellipse cx="0" cy="-8" rx="5.2" ry="8" transform="rotate(288)"/></g><circle r="4" style="fill:var(--butter)"/></g>
+  <path id="lf" d="M0 0 C6 -7 15 -7 22 0 C15 7 6 7 0 0Z" fill="currentColor"/>
+</defs></svg>
+
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<div class="book" id="book" data-stage="0" tabindex="0" role="group" aria-label="Laurka urodzinowa dla Mamy. Dotknij albo przesuń palcem, żeby przewracać strony.">
+  <div class="cardshadow"></div>
+
+  <!-- strona końcowa -->
+  <div class="layer finale">
+    <div class="finale-sheet">
+      <div class="blob b1"></div><div class="blob b2"></div>
+      <svg class="art" id="finArt" viewBox="0 0 360 640" aria-hidden="true"></svg>
+      <h2 class="fin-title rise" style="--i:1" aria-label="Happy Birthday"><span class="hb one" aria-hidden="true">Happy Birthday</span></h2>
+      <div class="lyrics rise" id="lyrics" style="--i:2" aria-label="Tekst piosenki Happy Birthday"></div>
+      <div class="fin-actions rise" style="--i:4" id="finActions">
+        <button class="btn" id="sing" type="button">
+          <svg viewBox="0 0 12 12" aria-hidden="true"><path id="singIcon" d="M3 1.5 L10.5 6 L3 10.5Z" fill="currentColor"/></svg>
+          <span id="singLabel" data-i18n="play">Puść melodię</span>
+        </button>
+        <button class="link" id="restart" type="button" data-i18n="restart">Od początku</button>
+      </div>
+      <div class="spine"></div>
+    </div>
+  </div>
+
+  <!-- rozkładówka: strony 2 i 3 razem -->
+  <div class="layer spread">
+    <div class="flap">
+      <div class="face front spread-face">
+        <section class="pg p2">
+          <p class="eyebrow rise" style="--i:0" data-i18n="eyebrow">Z okazji urodzin</p>
+          <h2 class="rise" style="--i:1" data-i18n="dear">Kochana Mamo!</h2>
+          <p class="body rise" style="--i:2" data-i18n="wish1">Życzę Ci wszystkiego najlepszego! Zdrowia, szczęścia i jeszcze raz zdrowia. Mam nadzieję, że kolejny rok Twojego życia będzie super.</p>
+          <svg class="mini-staff rise" style="--i:3" viewBox="0 0 300 34" aria-hidden="true">
+            <path d="M0 18 C40 6 70 30 110 18 S190 6 230 18 S280 26 300 16" fill="none" style="stroke:var(--leaf)" stroke-width="2" stroke-linecap="round"/>
+            <use href="#lf" transform="translate(72 24) rotate(40) scale(.8)" style="color:var(--leaf)"/>
+            <use href="#lf" transform="translate(150 12) rotate(-40) scale(.8)" style="color:var(--leaf)"/>
+            <use href="#lf" transform="translate(228 22) rotate(40) scale(.8)" style="color:var(--leaf)"/>
+            <use href="#fl" transform="translate(36 15) scale(.8)" style="color:var(--pink)"/>
+            <use href="#fl" transform="translate(110 18) scale(.8)" style="color:var(--purple)"/>
+            <use href="#fl" transform="translate(190 12) scale(.8)" style="color:var(--lilac)"/>
+            <use href="#fl" transform="translate(262 19) scale(.8)" style="color:var(--pink-deep)"/>
+          </svg>
+        </section>
+        <section class="pg p3">
+          <p class="body rise" style="--i:4" data-i18n="wish2">Dziękuję Ci, że zawsze dla nas jesteś i nas wspierasz.</p>
+          <h3 class="rise" style="--i:5" data-i18n="best">Jesteś najlepszą mamą!</h3>
+          <p class="love rise" style="--i:6" data-i18n="love">Kocham Cię bardzo.</p>
+          <p class="next rise" style="--i:7"><span data-i18n="next">dalej</span> <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2 L8.5 6 L4 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
+          <p class="sign rise" style="--i:8">Paweł</p>
+        </section>
+        <div class="crease"></div>
+        <div class="spine"></div>
+      </div>
+      <div class="face back"></div>
+    </div>
+  </div>
+
+  <!-- okładka -->
+  <div class="layer cover">
+    <div class="flap">
+      <div class="face front cover-face">
+        <div class="blob b1"></div><div class="blob b2"></div>
+        <svg class="art" id="coverArt" viewBox="0 0 360 640" aria-hidden="true"></svg>
+        <div class="cover-text">
+          <h1 aria-label="Happy Birthday"><span class="hb l1" aria-hidden="true">Happy</span><span class="hb l2" aria-hidden="true">Birthday</span></h1>
+        </div>
+        <p class="hint"><span class="pulse"></span><span data-i18n="hint">Dotknij, żeby otworzyć</span></p>
+        <div class="spine"></div>
+      </div>
+      <div class="face back"></div>
+    </div>
+  </div>
+
+  <button class="lang" id="lang" type="button" aria-label="Język: polski. Kliknij, żeby zmienić na angielski"><span class="on" data-l="pl">PL</span><span data-l="en">EN</span></button>
+
+  <nav class="dots" aria-label="Strony laurki">
+    <button type="button" aria-label="Okładka" aria-current="true"></button>
+    <button type="button" aria-label="Życzenia" aria-current="false"></button>
+    <button type="button" aria-label="Strona końcowa" aria-current="false"></button>
+  </nav>
+</div>
+<p class="sr" id="live" aria-live="polite"></p>
+
+
+
+<script>
+(function(){
+  var book=document.getElementById('book');
+  var dots=Array.prototype.slice.call(document.querySelectorAll('.dots button'));
+  var live=document.getElementById('live');
+  var fin=document.getElementById('finActions');
+  var singBtn=document.getElementById('sing');
+  var singLabel=document.getElementById('singLabel');
+  var singIcon=document.getElementById('singIcon');
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var stage=0,settleT=0;
+
+  /* girlanda z kwiatów na falującej łodydze */
+  function garland(svg,o){
+    var wv=function(x){return o.amp*Math.sin(x/360*Math.PI*2*o.freq+o.ph)};
+    var h='',x,d='';
+    for(x=-10;x<=370;x+=6){d+=(x===-10?'M':'L')+x+' '+(o.base+wv(x)).toFixed(1)}
+    h+='<path d="'+d+'" fill="none" style="stroke:var(--leaf)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>';
+    o.leaves.forEach(function(lx,j){
+      var y=o.base+wv(lx),a=Math.atan2(wv(lx+2)-wv(lx-2),4)*180/Math.PI,side=j%2?1:-1;
+      h+='<g transform="translate('+lx+' '+y.toFixed(1)+') rotate('+(a+side*50).toFixed(1)+') scale(1.1)"><use href="#lf" style="color:var(--leaf)"/></g>';
+    });
+    o.flowers.forEach(function(n,j){
+      var y=o.base+wv(n.x);
+      h+='<g transform="translate('+n.x+' '+y.toFixed(1)+') rotate('+n.r+') scale('+n.s+')"><g class="bob" style="animation-delay:'+(-j*0.55).toFixed(2)+'s;color:'+n.c+'"><use href="#fl"/></g></g>';
+    });
+    (o.free||[]).forEach(function(n,j){
+      if(n.t==='lf'){
+        h+='<g transform="translate('+n.x+' '+n.y+') rotate('+n.r+') scale('+n.s+')"><use href="#lf" style="color:var(--leaf)"/></g>';
+      }else{
+        h+='<g transform="translate('+n.x+' '+n.y+') rotate('+n.r+') scale('+n.s+')"><g class="bob" style="animation-delay:'+(-j*0.7-0.3).toFixed(2)+'s;color:'+n.c+'"><use href="#fl"/></g></g>';
+      }
+    });
+    svg.innerHTML=h;
+  }
+  garland(document.getElementById('coverArt'),{base:470,amp:14,freq:.9,ph:.5,
+    leaves:[22,68,132,200,268,330],
+    flowers:[{x:36,r:10,s:1.3,c:'var(--pink)'},{x:100,r:-8,s:1,c:'var(--purple)'},{x:166,r:20,s:1.6,c:'var(--lilac)'},{x:236,r:-12,s:1.1,c:'var(--pink-deep)'},{x:300,r:6,s:1.4,c:'var(--pink)'},{x:350,r:0,s:.9,c:'var(--purple)'}],
+    free:[
+      {t:'lf',x:62,y:78,r:25,s:1.5},{t:'lf',x:36,y:112,r:75,s:1.3},{t:'lf',x:86,y:58,r:-20,s:1.2},
+      {t:'fl',x:48,y:56,r:10,s:1.7,c:'var(--pink)'},
+      {t:'fl',x:100,y:34,r:-15,s:1,c:'var(--lilac)'},
+      {t:'fl',x:22,y:104,r:20,s:1,c:'var(--purple)'},
+      {t:'lf',x:300,y:100,r:150,s:1.5},{t:'lf',x:326,y:132,r:110,s:1.3},{t:'lf',x:268,y:62,r:200,s:1.2},
+      {t:'fl',x:312,y:72,r:-8,s:1.9,c:'var(--purple)'},
+      {t:'fl',x:262,y:40,r:15,s:1.1,c:'var(--pink)'},
+      {t:'fl',x:338,y:122,r:5,s:1,c:'var(--lilac)'},
+      {t:'fl',x:28,y:540,r:-10,s:1.1,c:'var(--lilac)'},
+      {t:'fl',x:334,y:548,r:12,s:1.2,c:'var(--pink)'}
+    ]});
+  garland(document.getElementById('finArt'),{base:425,amp:14,freq:1.1,ph:1.8,
+    leaves:[18,76,150,224,290,346],
+    flowers:[{x:44,r:8,s:1.3,c:'var(--pink)'},{x:112,r:-10,s:1,c:'var(--purple)'},{x:196,r:14,s:1.5,c:'var(--lilac)'},{x:262,r:-6,s:1.1,c:'var(--pink-deep)'},{x:322,r:10,s:1.3,c:'var(--pink)'}],
+    free:[{t:'fl',x:30,y:36,r:10,s:1.1,c:'var(--lilac)'},{t:'fl',x:336,y:178,r:-10,s:1.2,c:'var(--purple)'},{t:'lf',x:50,y:44,r:20,s:1.1},{t:'lf',x:314,y:188,r:160,s:1.1}]});
+
+  /* konfetti i nutki na całym ekranie, kolory z aktualnej palety */
+  var cv=document.getElementById('confetti'),cx=cv.getContext('2d');
+  var parts=[],raf=0,last=0,dpr=Math.min(window.devicePixelRatio||1,1.5);
+  var PAL=[],NPAL=[];
+  function readPal(){
+    var s=getComputedStyle(document.documentElement);
+    function v(n){return s.getPropertyValue(n).trim()}
+    PAL=[v('--pink'),v('--pink-soft'),v('--purple'),v('--lilac'),v('--butter'),v('--mint'),'#FFFFFF'];
+    NPAL=[v('--pink'),v('--purple'),v('--lilac'),v('--butter-deep'),v('--pink-deep'),v('--leaf')];
+  }
+  readPal();
+  function fit(){
+    cv.width=Math.round(window.innerWidth*dpr);cv.height=Math.round(window.innerHeight*dpr);
+    cv.style.width=window.innerWidth+'px';cv.style.height=window.innerHeight+'px';
+  }
+  fit();window.addEventListener('resize',fit);
+  function pick(a){return a[Math.floor(Math.random()*a.length)]}
+  function drawNote(c,p){
+    var u=p.size/30,i;
+    c.save();c.translate(p.x,p.y);c.rotate(p.rot);c.fillStyle=p.col;
+    if(p.kind===1){
+      for(i=0;i<5;i++){c.save();c.rotate(i*1.2566);c.beginPath();c.ellipse(0,-8*u,5.2*u,8*u,0,0,Math.PI*2);c.fill();c.restore()}
+      c.fillStyle='#F4CD72';c.beginPath();c.arc(0,0,4*u,0,Math.PI*2);c.fill();
+    }else if(p.kind===2){
+      c.beginPath();c.moveTo(0,0);c.bezierCurveTo(6*u,-7*u,15*u,-7*u,22*u,0);c.bezierCurveTo(15*u,7*u,6*u,7*u,0,0);c.fill();
+    }else{
+      c.beginPath();c.ellipse(0,0,5*u,9*u,0,0,Math.PI*2);c.fill();
+    }
+    c.restore();
+  }
+  function frame(ts){
+    var dt=Math.min(.05,(ts-last)/1000||.016);last=ts;
+    cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,cv.width,cv.height);
+    cx.setTransform(dpr,0,0,dpr,0,0);
+    parts=parts.filter(function(p){
+      if(p.delay>0){p.delay-=dt;return true}
+      p.age+=dt;
+      if(p.age>=p.life)return false;
+      if(p.t==='c'){
+        p.vy+=520*dt;
+        var k=Math.pow(.1,dt);p.vx*=k;p.vy*=k;
+        p.rot+=p.vr*dt;
+      }else{
+        p.vy-=(p.lift||70)*dt;
+        var k2=Math.pow(.3,dt);p.vx*=k2;p.vy*=k2;
+        p.vx+=Math.sin(p.age*3+p.ph)*40*dt;
+        p.rot+=p.vr*dt;
+      }
+      p.x+=p.vx*dt;p.y+=p.vy*dt;
+      var fade=Math.min(1,(p.life-p.age)/(p.life*.3));
+      cx.globalAlpha=fade;
+      if(p.t==='c'){
+        var cr=Math.cos(p.rot),sr=Math.sin(p.rot),sy=Math.cos(p.fl+p.age*p.fs);
+        cx.setTransform(cr*dpr,sr*dpr,-sr*sy*dpr,cr*sy*dpr,p.x*dpr,p.y*dpr);
+        cx.fillStyle=p.col;
+        if(p.round){cx.beginPath();cx.arc(0,0,p.w/2,0,Math.PI*2);cx.fill()}
+        else cx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      }else{cx.setTransform(dpr,0,0,dpr,0,0);drawNote(cx,p)}
+      return true;
+    });
+    cx.globalAlpha=1;
+    if(parts.length){raf=requestAnimationFrame(frame)}
+    else{raf=0;cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,cv.width,cv.height);cv.style.display='none'}
+  }
+  function pop(ox,oy,nc,nn){
+    var i,a,s;
+    if(cv.style.display!=='block'){cv.style.display='block';fit()}
+    for(i=0;i<nc;i++){
+      a=Math.random()*6.283;s=450+Math.random()*850;
+      parts.push({t:'c',x:ox,y:oy,vx:Math.cos(a)*s,vy:Math.sin(a)*s-250,
+        rot:Math.random()*6.28,vr:(Math.random()-.5)*14,w:6+Math.random()*5,h:9+Math.random()*7,
+        col:pick(PAL),age:0,life:1.8+Math.random()*1.2,fl:Math.random()*6.28,fs:6+Math.random()*6,round:Math.random()<.25});
+    }
+    for(i=0;i<nn;i++){
+      a=Math.random()*6.283;s=250+Math.random()*350;
+      parts.push({t:'n',x:ox,y:oy,vx:Math.cos(a)*s,vy:Math.sin(a)*s-150,
+        rot:(Math.random()-.5)*.8,vr:(Math.random()-.5)*1.2,size:20+Math.random()*16,
+        col:pick(NPAL),kind:Math.floor(Math.random()*3),age:0,life:2.6+Math.random()*1.2,ph:Math.random()*6.28});
+    }
+    if(!raf){last=performance.now();raf=requestAnimationFrame(frame)}
+  }
+  var celebrated=false;
+  function celebrate(){
+    if(reduce)return;
+    var r=book.getBoundingClientRect();
+    var shots=[[.5,.5,100,10,0],[.3,.35,55,6,110],[.7,.4,55,6,200],[.35,.7,55,6,300],[.65,.68,55,6,400]];
+    shots.forEach(function(s){
+      setTimeout(function(){pop(r.left+r.width*s[0],r.top+r.height*s[1],s[2],s[3])},s[4]);
+    });
+  }
+
+  /* przewracanie stron */
+  function update(){
+    book.dataset.stage=stage;
+    dots.forEach(function(d,i){d.setAttribute('aria-current',i===stage?'true':'false')});
+    fin.inert=stage!==2;
+    live.textContent=T[lang].page.replace('{n}',stage+1);
+  }
+  function go(n){
+    var prev=stage;
+    n=Math.max(0,Math.min(2,n));
+    if(n===stage)return;
+    stage=n;
+    update();
+    book.classList.remove('settled');
+    clearTimeout(settleT);
+    settleT=setTimeout(function(){book.classList.add('settled')},900);
+    if(stage!==2)stopSong();
+    if(prev===0&&stage===1&&!celebrated){celebrated=true;setTimeout(celebrate,300)}
+  }
+  dots.forEach(function(d,i){d.addEventListener('click',function(){go(i)})});
+  document.getElementById('restart').addEventListener('click',function(){go(0)});
+
+  var sx=0,sy=0,tracking=false;
+  book.addEventListener('pointerdown',function(e){
+    if(e.target.closest&&e.target.closest('button'))return;
+    sx=e.clientX;sy=e.clientY;tracking=true;
+  });
+  book.addEventListener('pointerup',function(e){
+    if(!tracking)return;tracking=false;
+    var dx=e.clientX-sx,dy=e.clientY-sy;
+    if(Math.abs(dx)>45&&Math.abs(dx)>=Math.abs(dy)){go(stage+(dx<0?1:-1))}
+    else if(Math.abs(dy)>45){go(stage+(dy<0?1:-1))}
+    else if(Math.hypot(dx,dy)<12&&stage<2){go(stage+1)}
+  });
+  book.addEventListener('pointercancel',function(){tracking=false});
+  document.addEventListener('keydown',function(e){
+    var onBtn=e.target.closest&&e.target.closest('button');
+    if((e.key==='Enter'||e.key===' ')&&!onBtn){e.preventDefault();go(stage+1)}
+    else if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key==='PageDown'){go(stage+1)}
+    else if(e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='PageUp'){go(stage-1)}
+  });
+
+  /* tekst piosenki: sylaba, początek w uderzeniach, długość, spacja po */
+  var LYR=[
+    [['Hap',0,.75],['py',.75,.25,1],['birth',1,1],['day',2,1,1],['to',3,1,1],['you',4,2]],
+    [['Hap',6,.75],['py',6.75,.25,1],['birth',7,1],['day',8,1,1],['to',9,1,1],['you',10,2]],
+    [['Hap',12,.75],['py',12.75,.25,1],['birth',13,1],['day',14,1,1],['dear',15,1,1],['ma',16,1],['ma',17,2]],
+    [['Hap',19,.75],['py',19.75,.25,1],['birth',20,1],['day',21,1,1],['to',22,1,1],['you',23,2]]
+  ];
+  var lyricsEl=document.getElementById('lyrics');
+  var syls=[];
+  LYR.forEach(function(line){
+    var row=document.createElement('div');row.className='lyr-line';
+    line.forEach(function(s){
+      var sp=document.createElement('span');sp.className='syl';sp.textContent=s[0];
+      sp.dataset.s=s[1];sp.dataset.d=s[2];
+      row.appendChild(sp);syls.push(sp);
+      if(s[3])row.appendChild(document.createTextNode(' '));
+    });
+    lyricsEl.appendChild(row);
+  });
+  function setFill(p,v){p.style.backgroundPosition=((1-v)*100).toFixed(1)+'% 0'}
+  function resetFill(){syls.forEach(function(s){setFill(s,0)})}
+
+  /* melodia urodzinowa, grana prostym dźwiękiem pozytywki */
+  var MELODY=[[67,.75],[67,.25],[69,1],[67,1],[72,1],[71,2],
+              [67,.75],[67,.25],[69,1],[67,1],[74,1],[72,2],
+              [67,.75],[67,.25],[79,1],[76,1],[72,1],[71,1],[69,2],
+              [77,.75],[77,.25],[76,1],[72,1],[74,1],[72,2]];
+  var BEAT=.62;
+  var ctx=null,master=null,timers=[],playing=false,t0=0,tick=0;
+  function setBtn(on){
+    singLabel.textContent=T[lang][on?'stop':'play'];
+    singIcon.setAttribute('d',on?'M2.5 2 H5 V10 H2.5Z M7 2 H9.5 V10 H7Z':'M3 1.5 L10.5 6 L3 10.5Z');
+  }
+  function tone(f,t,d){
+    var g=ctx.createGain();
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(.9,t+.012);
+    g.gain.exponentialRampToValueAtTime(.001,t+d+.35);
+    var o1=ctx.createOscillator();o1.type='triangle';o1.frequency.value=f;o1.connect(g);
+    var g2=ctx.createGain();g2.gain.value=.22;
+    var o2=ctx.createOscillator();o2.type='sine';o2.frequency.value=f*2;o2.connect(g2);g2.connect(g);
+    g.connect(master);
+    o1.start(t);o2.start(t);o1.stop(t+d+.4);o2.stop(t+d+.4);
+  }
+  function lyricLoop(){
+    if(!playing)return;
+    var b=(ctx.currentTime-t0)/BEAT;
+    syls.forEach(function(s){
+      var v=(b-parseFloat(s.dataset.s))/parseFloat(s.dataset.d);
+      setFill(s,v<0?0:v>1?1:v);
+    });
+    tick=requestAnimationFrame(lyricLoop);
+  }
+  function startSong(){
+    try{
+      var AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC)return;
+      if(!ctx)ctx=new AC();
+      if(ctx.resume)ctx.resume();
+      master=ctx.createGain();master.gain.value=.28;master.connect(ctx.destination);
+      t0=ctx.currentTime+.08;
+      var t=t0;
+      resetFill();
+      MELODY.forEach(function(n){
+        var f=440*Math.pow(2,(n[0]-69)/12),dur=n[1]*BEAT;
+        tone(f,t,Math.max(dur,.5));
+        t+=dur;
+      });
+      timers.push(setTimeout(function(){stopSong(true)},(t-t0)*1000+1200));
+      playing=true;setBtn(true);
+      tick=requestAnimationFrame(lyricLoop);
+    }catch(err){playing=false;setBtn(false)}
+  }
+  function stopSong(keepFill){
+    timers.forEach(clearTimeout);timers=[];
+    if(tick){cancelAnimationFrame(tick);tick=0}
+    if(master&&ctx){
+      try{master.gain.cancelScheduledValues(ctx.currentTime);master.gain.setTargetAtTime(0,ctx.currentTime,.04)}catch(e){}
+      var m=master;master=null;
+      setTimeout(function(){try{m.disconnect()}catch(e){}},400);
+    }
+    if(keepFill===true&&playing){syls.forEach(function(s){setFill(s,1)})}
+    else resetFill();
+    playing=false;setBtn(false);
+  }
+  singBtn.addEventListener('click',function(){playing?stopSong():startSong()});
+  document.addEventListener('visibilitychange',function(){if(document.hidden)stopSong()});
+
+
+  /* napis na okładce dopasowany szerokością do kartki, także gdy czcionka jeszcze się ładuje */
+  function fitTitle(){
+    var l2=book.querySelector('.cover .hb.l2');if(!l2)return;
+    l2.parentNode.style.setProperty('--hbs','22cqw');
+    var cur=22,w=l2.offsetWidth,bw=book.clientWidth;
+    if(!w||!bw)return;
+    var n=Math.max(16,Math.min(34,cur*(bw*.80)/w));
+    l2.parentNode.style.setProperty('--hbs',n.toFixed(2)+'cqw');
+    var f=book.querySelector('.fin-title .hb');
+    if(f){
+      f.parentNode.style.setProperty('--hbs','15cqw');
+      var fw=f.offsetWidth;
+      if(fw&&bw){f.parentNode.style.setProperty('--hbs',Math.max(9,Math.min(26,15*(bw*.82)/fw)).toFixed(2)+'cqw')}
+    }
+  }
+  fitTitle();
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitTitle);
+  window.addEventListener('load',fitTitle);
+  window.addEventListener('resize',fitTitle);
+
+  /* język: PL <-> EN */
+  var T={
+    pl:{eyebrow:'Z okazji urodzin',dear:'Kochana Mamo!',
+      wish1:'Życzę Ci wszystkiego najlepszego! Zdrowia, szczęścia i jeszcze raz zdrowia. Mam nadzieję, że kolejny rok Twojego życia będzie super.',
+      wish2:'Dziękuję Ci, że zawsze dla nas jesteś i nas wspierasz.',best:'Jesteś najlepszą mamą!',love:'Kocham Cię bardzo.',next:'dalej',
+      karaoke:'Happy Birthday',play:'Puść melodię',stop:'Zatrzymaj',restart:'Od początku',hint:'Dotknij, żeby otworzyć',
+      book:'Laurka urodzinowa dla Mamy. Dotknij albo przesuń palcem, żeby przewracać strony.',
+      d0:'Okładka',d1:'Życzenia',d2:'Strona końcowa',page:'Strona {n} z 3',
+      lang:'Język: polski. Kliknij, żeby zmienić na angielski'},
+    en:{eyebrow:'For your birthday',dear:'Dear Mom!',
+      wish1:'Happy birthday! Health, happiness, and once more: health. I hope the coming year of your life will be amazing.',
+      wish2:'Thank you for always being there for us and supporting us.',best:'You are the best mom!',love:'I love you so much.',next:'next',
+      karaoke:'Happy Birthday',play:'Play the tune',stop:'Stop',restart:'Start over',hint:'Tap to open',
+      book:'Birthday card for Mom. Tap or swipe to turn the pages.',
+      d0:'Cover',d1:'Wishes',d2:'Final page',page:'Page {n} of 3',
+      lang:'Language: English. Click to switch to Polish'}
+  };
+  var lang='pl';
+  var langBtn=document.getElementById('lang');
+  function applyLang(){
+    var d=T[lang];
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'),function(el){
+      var k=el.getAttribute('data-i18n');if(d[k]!==undefined)el.textContent=d[k];
+    });
+    document.documentElement.lang=lang;
+    book.setAttribute('aria-label',d.book);
+    dots.forEach(function(b,i){b.setAttribute('aria-label',d['d'+i])});
+    Array.prototype.forEach.call(langBtn.children,function(sp){sp.classList.toggle('on',sp.dataset.l===lang)});
+    langBtn.setAttribute('aria-label',d.lang);
+    live.textContent=d.page.replace('{n}',stage+1);
+    setBtn(playing);
+    fitTitle();
+  }
+  langBtn.addEventListener('click',function(e){e.stopPropagation();lang=lang==='pl'?'en':'pl';applyLang()});
+  resetFill();
+  update();
+  book.classList.add('settled');
+})();
+</script>
+</body>
+</html>
